@@ -16,15 +16,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#datos=pd.read_excel("Marzo_eur_usd_min.xlsx")
+datos=pd.read_excel("Marzo_eur_usd_min.xlsx")
 #datos=pd.read_excel("Enero-Abril_eur_usd_hora.xlsx")
 #datos=pd.read_excel("Amazon_2019_dia.xlsx")
-datos=pd.read_excel("2000-2020_eur_usd_semana.xlsx")
+#datos=pd.read_excel("2000-2020_eur_usd_semana.xlsx")
 
-sns.lineplot(data=datos["Open"],label="Open")
+#sns.lineplot(data=datos["Open"],label="Open")
 
-rolls=10 
-orden=20
+rolls=5 
+orden=50
+rango=5
+dinero=1000
+
 
 #print(datos.head())
 
@@ -254,20 +257,20 @@ for i in minimo_significativo:
 
 
 
-exito_alcista=[]
+acierto_alcista=[]
 error_alcista=[]
-exito_bajista=[]
+acierto_bajista=[]
 error_bajista=[]
 
 for i in podria_estar_alcista:
     if i in esta_alcista:
-        exito_alcista.append(i)
+        acierto_alcista.append(i)
     else:
         error_alcista.append(i)
 
 for i in podria_estar_bajista:
     if i in esta_bajista:
-        exito_bajista.append(i)
+        acierto_bajista.append(i)
     else:
         error_bajista.append(i)
 
@@ -298,27 +301,105 @@ for i in error_alcista:
 #print("Sushi bajista correctamente identificado en: ",exito_bajista)
 #print("Sushi alcista correctamente identificado en: ",exito_alcista)
 
-print("Ratio exito/fracaso en bajista=", len(exito_bajista), "/", len(error_bajista_filtrado))
-print("Ratio exito/fracaso en alcista=", len(exito_alcista), "/", len(error_alcista_filtrado))
-
-#Cambios en tendencia general
-
-#derece_general=[]
-#crece_general=[]
+#print("Ratio exito/fracaso en bajista=", len(exito_bajista), "/", len(error_bajista_filtrado))
+#print("Ratio exito/fracaso en alcista=", len(exito_alcista), "/", len(error_alcista_filtrado))
 
 
-#Primero vamos a ver las tendencias sabiendo los picos, y luego intentar programar 
-#esas tendencias sin saber el futuro.
+
+"""
+Empezamos a ver si es viable economicamente
+
+"""
 
 
-    
-    
 
+exito_bajista=0
+fracaso_bajista=0
+dinero_perdido_bajista=0
+dinero_ganado_bajista=0
 
-#for i in posicion_filtrada:
             
+for i in sushi_bajista:   #Máximo y para abajo
+    contador=0
+    pico=0
+    stop_loss=False
+    take_profit=False
+    for j in range (2*rolls):
+        pico=max(pico,datos.iloc[i+j,2])
+    entrada=datos.iloc[i+j,4]        #entramos en el cierre
+    ancho=rango*(pico-entrada)    
+    while stop_loss==False and take_profit==False and (i+j+contador+1) < datos.shape[0]:
+        contador=contador+1
+        if datos.iloc [i+j+contador,4] >= (entrada+ancho) or datos.iloc[i+j+contador,2] >= (entrada+ancho):
+            stop_loss=True
+        elif datos.iloc [i+j+contador,4] <= (entrada-ancho) or datos.iloc[i+j+contador,3] <= (entrada-ancho):
+            take_profit=True
+            
+    if stop_loss==True:
+        fracaso_bajista=fracaso_bajista+1
+        dinero_perdido_bajista=dinero_perdido_bajista+ancho
         
+    
+    elif take_profit==True:
+        exito_bajista=exito_bajista+1
+        dinero_ganado_bajista=dinero_ganado_bajista+ancho
+    
+
         
+#print ("gano dinero ", exito_bajista, "veces en sushi bajista") 
+#print ("pierdo dinero ", fracaso_bajista, "veces en sushi bajista")
+
+
+
+
+
+
+exito_alcista=0
+fracaso_alcista=0
+dinero_perdido_alcista=0
+dinero_ganado_alcista=0
+
+            
+for i in sushi_alcista:   #Mínimo y para arriba
+    contador=0
+    valle=datos.iloc[i,3]
+    stop_loss=False
+    take_profit=False
+    for j in range (2*rolls):
+        valle=min(valle,datos.iloc[i+j,3])
+    entrada=datos.iloc[i+j,4]        #entramos en el cierre
+    ancho=rango*(entrada-valle)    
+    while stop_loss==False and take_profit==False and (i+j+contador+1) < datos.shape[0]:
+        contador=contador+1
+        if datos.iloc [i+j+contador,4] <= (entrada-ancho) or datos.iloc[i+j+contador, 3] <= (entrada-ancho):
+            stop_loss=True
+        elif datos.iloc [i+j+contador,4] >= (entrada+ancho) or datos.iloc[i+j+contador,2] >= (entrada+ancho):
+            take_profit=True
+            
+    if stop_loss==True:
+        fracaso_alcista=fracaso_alcista+1
+        dinero_perdido_alcista=dinero_perdido_alcista+ancho
+    
+    elif take_profit==True:
+        exito_alcista=exito_alcista+1
+        dinero_ganado_alcista=dinero_ganado_alcista+ancho
         
-        
-        
+#print ("gano dinero ", exito_alcista, "veces en sushi alcista") 
+#print ("pierdo dinero ", fracaso_alcista, "veces en sushi alcista")
+
+
+
+exitos_totales=exito_alcista+exito_bajista
+fracasos_totales=fracaso_alcista+fracaso_bajista
+operaciones_efectuadas=exitos_totales+fracasos_totales
+ratio_porcentual=100*exitos_totales/operaciones_efectuadas
+diferencia=exitos_totales-fracasos_totales
+dinero_ganado=dinero_ganado_alcista+dinero_ganado_bajista
+dinero_perdido=dinero_perdido_bajista+dinero_perdido_alcista
+renta_total=dinero_ganado-dinero_perdido
+print("El porcentaje de aciertos es del ", ratio_porcentual, " porciento")
+print("He ganado",  dinero_ganado," en ", exitos_totales, "veces")
+print("He perdido", dinero_perdido," en ", fracasos_totales, "veces")
+print("Si hubiese metido", dinero, " euros por operación habría ganado", dinero*renta_total, "euros")
+print("El ratio de ganancia en este periodo habría sido del ", renta_total*100," porciento")
+       
